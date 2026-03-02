@@ -11,6 +11,24 @@ class Ticket extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
+    protected $fillable = [
+        'customer_id',
+        'user_id',
+        'subject',
+        'description',
+        'jenis_device',
+        'merk_device',
+        'estimasi',
+        'biaya_final',
+        'status',
+        'priority',
+    ];
+
+    protected $casts = [
+        'estimasi' => 'integer',
+        'biaya_final' => 'integer',
+    ];
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);
