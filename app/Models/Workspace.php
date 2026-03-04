@@ -31,6 +31,16 @@ class Workspace extends Model
         return $this->hasMany(Finance::class)->latest('transaction_date');
     }
 
+    public function financeCategories(): HasMany
+    {
+        return $this->hasMany(FinanceCategory::class);
+    }
+
+    public function financeAccounts(): HasMany
+    {
+        return $this->hasMany(FinanceAccount::class);
+    }
+
     // ── Helper ─────────────────────────────────────────────────────────────────
 
     /**

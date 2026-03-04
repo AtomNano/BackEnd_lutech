@@ -14,6 +14,7 @@ class Finance extends Model
     protected $fillable = [
         'workspace_id',
         'user_id',
+        'finance_account_id', // added this
         'type',
         'category',
         'amount',
@@ -31,5 +32,10 @@ class Finance extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function financeAccount(): BelongsTo
+    {
+        return $this->belongsTo(FinanceAccount::class);
     }
 }

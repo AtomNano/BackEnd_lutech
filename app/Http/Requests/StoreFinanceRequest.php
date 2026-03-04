@@ -15,6 +15,7 @@ class StoreFinanceRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'finance_account_id' => 'nullable|integer|exists:finance_accounts,id',
             'type' => 'required|in:income,expense',
             'category' => 'required|string|max:100',
             'amount' => 'required|numeric|min:0',

@@ -12,6 +12,7 @@ class FinanceResource extends JsonResource
         return [
             'id' => $this->id,
             'workspace_id' => $this->workspace_id,
+            'finance_account_id' => $this->finance_account_id,
             'user_id' => $this->user_id,
             'type' => $this->type,
             'category' => $this->category,

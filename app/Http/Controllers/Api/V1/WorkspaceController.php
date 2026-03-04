@@ -10,54 +10,60 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class WorkspaceController extends Controller
 {
-    /**
-     * GET /api/v1/workspaces
-     * List semua workspace milik user yang sedang login.
-     */
     public function index(): AnonymousResourceCollection
     {
-        $workspaces = Workspace::where('user_id', Auth::id())
-            ->orderByDesc('is_default')
-            ->orderBy('name')
-            ->get();
-
-        return WorkspaceResource::collection($workspaces);
+        return WorkspaceResource::collection(
+            Workspace::where('user_id', Auth::id())
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get()
+        );
     }
 
-    /**
-     * POST /api/v1/workspaces
-     * Buat workspace baru.
-     */
     public function store(StoreWorkspaceRequest $request): WorkspaceResource
     {
         $isFirst = !Workspace::where('user_id', Auth::id())->exists();
-
         $workspace = Workspace::create([
             'user_id' => Auth::id(),
             'name' => $request->name,
             'type' => $request->type,
-            'is_default' => $isFirst, // Otomatis default kalau ini yang pertama
+            'is_default' => $isFirst,
         ]);
-
         return new WorkspaceResource($workspace);
     }
 
     /**
-     * PATCH /api/v1/workspaces/{workspace}/default
-     * Set workspace ini sebagai default.
+     * PATCH /api/v1/workspaces/{workspace}
+     * Rename workspace.
      */
-    public function setDefault(Workspace $workspace): JsonResponse
+    public function update(Request $request, Workspace $workspace): JsonResponse
     {
-        // Authorization: hanya pemilik
         if ($workspace->user_id !== Auth::id()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $workspace->markAsDefault();
+        $request->validate([
+            'name' => 'required|string|max:100',
+        ]);
 
+        $workspace->update(['name' => $request->name]);
+
+        return response()->json([
+            'message' => 'Workspace diperbarui.',
+            'workspace' => new WorkspaceResource($workspace->fresh()),
+        ]);
+    }
+
+    public function setDefault(Workspace $workspace): JsonResponse
+    {
+        if ($workspace->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        $workspace->markAsDefault();
         return response()->json([
             'message' => 'Workspace default diperbarui.',
             'workspace' => new WorkspaceResource($workspace->fresh()),
@@ -65,23 +71,58 @@ class WorkspaceController extends Controller
     }
 
     /**
-     * DELETE /api/v1/workspaces/{workspace}
-     * Hapus workspace (tidak bisa hapus default).
+     * POST /api/v1/workspaces/{workspace}/verify-pin
      */
+    public function verifyPin(Request $request, Workspace $workspace): JsonResponse
+    {
+        if ($workspace->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        if (!$workspace->pin_hash) {
+            return response()->json(['message' => 'Workspace tidak diproteksi.', 'verified' => true]);
+        }
+        $request->validate(['pin' => 'required|string|min:4|max:8']);
+        if (!Hash::check($request->pin, $workspace->pin_hash)) {
+            return response()->json(['message' => 'PIN salah.', 'verified' => false], 401);
+        }
+        return response()->json(['verified' => true, 'message' => 'PIN benar.']);
+    }
+
+    /**
+     * POST /api/v1/workspaces/{workspace}/set-pin
+     */
+    public function setPin(Request $request, Workspace $workspace): JsonResponse
+    {
+        if ($workspace->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        $request->validate([
+            'pin' => 'nullable|string|min:4|max:8',
+            'current_pin' => 'nullable|string',
+        ]);
+        if ($workspace->pin_hash && $request->filled('pin')) {
+            if (!$request->filled('current_pin') || !Hash::check($request->current_pin, $workspace->pin_hash)) {
+                return response()->json(['message' => 'PIN saat ini salah.'], 401);
+            }
+        }
+        $workspace->update([
+            'pin_hash' => $request->filled('pin') ? Hash::make($request->pin) : null,
+        ]);
+        return response()->json([
+            'message' => $request->filled('pin') ? 'PIN berhasil diatur.' : 'PIN dihapus.',
+            'has_pin' => $workspace->fresh()->pin_hash !== null,
+        ]);
+    }
+
     public function destroy(Workspace $workspace): JsonResponse
     {
         if ($workspace->user_id !== Auth::id()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
-
         if ($workspace->is_default) {
-            return response()->json([
-                'message' => 'Tidak bisa menghapus workspace default. Ganti default ke workspace lain terlebih dahulu.',
-            ], 422);
+            return response()->json(['message' => 'Tidak bisa menghapus workspace default.'], 422);
         }
-
         $workspace->delete();
-
         return response()->json(['message' => 'Workspace dihapus.']);
     }
 }

@@ -105,4 +105,32 @@ class TicketController extends Controller
         $ticket->delete();
         return response()->json(['message' => 'Tiket dihapus.']);
     }
+
+    // GET /v1/track/{query} — PUBLIC (Pelacakan)
+    public function trackPublic($query)
+    {
+        // Bersihkan tanda '#' jika ada
+        $cleanQuery = ltrim($query, '#');
+
+        // Cari tiket berdasarkan potongan ID (sejak user melihat ID pendek misal 019cae00)
+        $ticket = Ticket::with(['customer', 'technician'])
+            ->where('id', 'LIKE', $cleanQuery . '%')
+            ->first();
+
+        // Jika tidak ketemu berdasarkan ID, coba cari berdasar WA customer
+        if (!$ticket) {
+            $ticket = Ticket::with(['customer', 'technician'])
+                ->whereHas('customer', function ($q) use ($cleanQuery) {
+                    $q->where('whatsapp', $cleanQuery);
+                })
+                ->orderBy('created_at', 'desc')
+                ->first();
+        }
+
+        if (!$ticket) {
+            return response()->json(['message' => 'Tiket atau Nomor WhatsApp tidak ditemukan.'], 404);
+        }
+
+        return new TicketResource($ticket);
+    }
 }

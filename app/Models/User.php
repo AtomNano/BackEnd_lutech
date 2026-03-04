@@ -17,6 +17,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar', // Foto Profil
         'role', // WAJIB DIMASUKKAN KE FILLABLE, jika tidak, field ini akan diabaikan Laravel saat User::create()
     ];
 

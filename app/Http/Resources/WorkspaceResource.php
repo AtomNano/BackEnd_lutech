@@ -14,6 +14,7 @@ class WorkspaceResource extends JsonResource
             'name' => $this->name,
             'type' => $this->type,
             'is_default' => $this->is_default,
+            'has_pin' => !is_null($this->pin_hash),
             'created_at' => $this->created_at->toIso8601String(),
         ];
     }

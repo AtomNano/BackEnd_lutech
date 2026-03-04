@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFinanceRequest;
 use App\Http\Resources\FinanceResource;
 use App\Models\Finance;
+use App\Models\FinanceAccount;
 use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,22 @@ class FinanceController extends Controller
         if ($workspace->user_id !== Auth::id()) {
             abort(403, 'Forbidden');
         }
+    }
+
+    /**
+     * Helper: ubah saldo akun sebesar $delta (positif = tambah, negatif = kurang).
+     */
+    private function adjustAccountBalance(int $accountId, float $delta): void
+    {
+        FinanceAccount::where('id', $accountId)->increment('balance', $delta);
+    }
+
+    /**
+     * Helper: hitung delta perubahan saldo berdasarkan tipe transaksi.
+     */
+    private function balanceDelta(string $type, float $amount): float
+    {
+        return $type === 'income' ? $amount : -$amount;
     }
 
     /**
@@ -44,24 +61,27 @@ class FinanceController extends Controller
 
     /**
      * POST /api/v1/workspaces/{workspace}/finances
-     * Tambah transaksi baru.
+     * Tambah transaksi baru dan update saldo akun jika dipilih.
      */
     public function store(StoreFinanceRequest $request, Workspace $workspace): FinanceResource
     {
         $this->authorizeWorkspace($workspace);
 
-        $finance = Finance::create([
-            ...$request->validated(),
-            'workspace_id' => $workspace->id,
-            'user_id' => Auth::id(),
-        ]);
+        $finance = DB::transaction(function () use ($request, $workspace) {
+            $data = array_merge($request->validated(), [
+                'workspace_id' => $workspace->id,
+                'user_id' => Auth::id(),
+            ]);
+
+            return Finance::create($data);
+        });
 
         return new FinanceResource($finance);
     }
 
     /**
      * PUT /api/v1/workspaces/{workspace}/finances/{finance}
-     * Edit transaksi.
+     * Edit transaksi dan rekonsiliasi saldo akun.
      */
     public function update(StoreFinanceRequest $request, Workspace $workspace, Finance $finance): FinanceResource
     {
@@ -71,14 +91,19 @@ class FinanceController extends Controller
             abort(403, 'Forbidden');
         }
 
-        $finance->update($request->validated());
+        $finance = DB::transaction(function () use ($request, $finance) {
+            $finance->update($request->validated());
+            $finance->refresh();
+
+            return $finance;
+        });
 
         return new FinanceResource($finance->fresh());
     }
 
     /**
      * DELETE /api/v1/workspaces/{workspace}/finances/{finance}
-     * Soft delete transaksi.
+     * Soft delete dan balik efek saldo pada akun.
      */
     public function destroy(Workspace $workspace, Finance $finance): JsonResponse
     {
@@ -88,7 +113,9 @@ class FinanceController extends Controller
             abort(403, 'Forbidden');
         }
 
-        $finance->delete();
+        DB::transaction(function () use ($finance) {
+            $finance->delete();
+        });
 
         return response()->json(['message' => 'Transaksi dihapus.']);
     }
@@ -123,3 +150,4 @@ class FinanceController extends Controller
         ]);
     }
 }
+
