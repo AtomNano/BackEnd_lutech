@@ -52,6 +52,7 @@ class FinanceController extends Controller
 
         $query = Finance::forWorkspace($workspace->id)
             ->when($request->type, fn($q, $v) => $q->where('type', $v))
+            ->when($request->status, fn($q, $v) => $q->where('status', $v)) // Filter by drafted or approved
             ->when($request->month, fn($q, $v) => $q->whereMonth('transaction_date', $v))
             ->when($request->year, fn($q, $v) => $q->whereYear('transaction_date', $v))
             ->latest('transaction_date');
@@ -61,7 +62,7 @@ class FinanceController extends Controller
 
     /**
      * POST /api/v1/workspaces/{workspace}/finances
-     * Tambah transaksi baru dan update saldo akun jika dipilih.
+     * Tambah transaksi (Status default: pending di-handle oleh database migration, atau via n8n).
      */
     public function store(StoreFinanceRequest $request, Workspace $workspace): FinanceResource
     {
@@ -71,9 +72,13 @@ class FinanceController extends Controller
             $data = array_merge($request->validated(), [
                 'workspace_id' => $workspace->id,
                 'user_id' => Auth::id(),
+                'status' => $request->status ?? 'approved',
+                'source' => $request->source ?? 'web',
             ]);
 
-            return Finance::create($data);
+            // Jika request membawa payload 'status' (misal dari React Dashboard 'approved' atau dari n8n 'pending'), izinkan
+
+            return Finance::create($data); // Observer creates balance diff if approved
         });
 
         return new FinanceResource($finance);
@@ -81,7 +86,7 @@ class FinanceController extends Controller
 
     /**
      * PUT /api/v1/workspaces/{workspace}/finances/{finance}
-     * Edit transaksi dan rekonsiliasi saldo akun.
+     * Edit transaksi (Termasuk verifikasi / Approve Draft -> update status: 'approved').
      */
     public function update(StoreFinanceRequest $request, Workspace $workspace, Finance $finance): FinanceResource
     {
@@ -92,6 +97,8 @@ class FinanceController extends Controller
         }
 
         $finance = DB::transaction(function () use ($request, $finance) {
+
+            // Observer handles reverting balance if changed from approved to pending, or adding if pending to approved.
             $finance->update($request->validated());
             $finance->refresh();
 
@@ -132,6 +139,7 @@ class FinanceController extends Controller
         $year = $request->integer('year', now()->year);
 
         $totals = Finance::forWorkspace($workspace->id)
+            ->where('status', 'approved')
             ->whereMonth('transaction_date', $month)
             ->whereYear('transaction_date', $year)
             ->select('type', DB::raw('SUM(amount) as total'))

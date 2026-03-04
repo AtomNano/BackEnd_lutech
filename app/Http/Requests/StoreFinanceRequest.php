@@ -19,6 +19,10 @@ class StoreFinanceRequest extends FormRequest
             'type' => 'required|in:income,expense',
             'category' => 'required|string|max:100',
             'amount' => 'required|numeric|min:0',
+            'status' => 'nullable|in:pending,approved,rejected',
+            'source' => 'nullable|string|max:50',
+            'ai_metadata' => 'nullable|array',
+            'attachment_path' => 'nullable|string',
             'description' => 'nullable|string|max:500',
             'transaction_date' => 'required|date',
         ];

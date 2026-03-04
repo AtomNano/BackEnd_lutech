@@ -11,7 +11,10 @@ class FinanceObserver
      */
     public function created(Finance $finance): void
     {
-        $this->mutateBalance($finance, 'create');
+        // Hanya tambahkan saldo jika transaksi langsung dibuat dengan status approved (misal dari panel Web admin)
+        if ($finance->status === 'approved') {
+            $this->mutateBalance($finance, 'create');
+        }
     }
 
     /**
@@ -19,13 +22,28 @@ class FinanceObserver
      */
     public function updated(Finance $finance): void
     {
-        // Cancel old balance mutation
         $oldFinance = new Finance($finance->getOriginal());
         $oldFinance->id = $finance->id;
-        $this->mutateBalance($oldFinance, 'delete');
 
-        // Apply new balance mutation
-        $this->mutateBalance($finance, 'create');
+        // Skenario 1: Status berubah dari pending/rejected menjadi approved (Approve Draft)
+        if ($oldFinance->status !== 'approved' && $finance->status === 'approved') {
+            $this->mutateBalance($finance, 'create');
+            return;
+        }
+
+        // Skenario 2: Status berubah dari approved menjadi pending/rejected (Batal Approve/Revert)
+        if ($oldFinance->status === 'approved' && $finance->status !== 'approved') {
+            $this->mutateBalance($oldFinance, 'delete');
+            return;
+        }
+
+        // Skenario 3: Transaksi tetap approved, namun nominal atau tipe berubah
+        if ($oldFinance->status === 'approved' && $finance->status === 'approved') {
+            // Cancel old balance mutation
+            $this->mutateBalance($oldFinance, 'delete');
+            // Apply new balance mutation
+            $this->mutateBalance($finance, 'create');
+        }
     }
 
     /**
@@ -33,7 +51,10 @@ class FinanceObserver
      */
     public function deleted(Finance $finance): void
     {
-        $this->mutateBalance($finance, 'delete');
+        // Hanya potong jika yang dihapus itu memang transaksi yang sudah di "approved"
+        if ($finance->status === 'approved') {
+            $this->mutateBalance($finance, 'delete');
+        }
     }
 
     /**
@@ -41,7 +62,9 @@ class FinanceObserver
      */
     public function restored(Finance $finance): void
     {
-        //
+        if ($finance->status === 'approved') {
+            $this->mutateBalance($finance, 'create');
+        }
     }
 
     /**

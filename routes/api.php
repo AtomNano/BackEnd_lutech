@@ -104,3 +104,19 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::delete('financial-goals/{goal}', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'destroy']);
     });
 });
+
+// ═══════════════════════════════════════════════════════════════
+//  N8N AUTOMATION ROUTES (Protected by IP Whitelist + Sanctum Token)
+// ═══════════════════════════════════════════════════════════════
+Route::middleware(['auth:sanctum', 'n8n.whitelist'])->prefix('v1/n8n')->group(function () {
+
+    // N8N Endpoint: Get active finance categories for String Matching AI (Data Enrichment)
+    Route::get('workspaces/{workspace}/finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'index']);
+
+    // N8N Endpoint: Post Finance (Draft/Pending Mode recommended)
+    Route::post('workspaces/{workspace}/finances', [FinanceController::class, 'store']);
+
+    // N8N Endpoint: Post Ticket Service
+    Route::post('tickets', [TicketController::class, 'store']);
+
+});

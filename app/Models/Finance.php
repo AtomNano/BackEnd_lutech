@@ -14,10 +14,14 @@ class Finance extends Model
     protected $fillable = [
         'workspace_id',
         'user_id',
-        'finance_account_id', // added this
+        'finance_account_id',
         'type',
         'category',
         'amount',
+        'status',
+        'source',
+        'ai_metadata',
+        'attachment_path',
         'description',
         'transaction_date',
     ];
@@ -25,7 +29,25 @@ class Finance extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'transaction_date' => 'date',
+        'ai_metadata' => 'array',
     ];
+
+    // ── Scopes ─────────────────────────────────────────────────────────────────
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    public function scopeRejected($query)
+    {
+        return $query->where('status', 'rejected');
+    }
 
     // ── Relationships ──────────────────────────────────────────────────────────
 
