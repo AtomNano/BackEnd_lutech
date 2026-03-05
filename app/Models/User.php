@@ -39,9 +39,15 @@ class User extends Authenticatable
     // Bungkus dalam fungsi ini agar jika nama role berubah di masa depan, 
     // kamu hanya perlu memperbaiki logika di satu tempat ini saja. (Prinsip DRY - Don't Repeat Yourself)
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    // isAdmin returns true for both 'admin' and 'super_admin'
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return in_array($this->role, ['admin', 'super_admin']);
     }
 
     public function isTechnician(): bool

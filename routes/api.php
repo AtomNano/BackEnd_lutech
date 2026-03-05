@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\GalleryController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\UserController;
 
 // ═══════════════════════════════════════════════════════════════
 //  PUBLIC ROUTES  (tanpa auth)
@@ -103,6 +104,12 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::put('financial-goals/{goal}', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'update']);
         Route::delete('financial-goals/{goal}', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'destroy']);
     });
+
+    // ── User Management (Super Admin Only) ───────────────────────
+    Route::get('users', [UserController::class, 'index']);
+    Route::post('users', [UserController::class, 'store']);
+    Route::patch('users/{user}', [UserController::class, 'update']);
+    Route::delete('users/{user}', [UserController::class, 'destroy']);
 });
 
 // ═══════════════════════════════════════════════════════════════
