@@ -19,13 +19,13 @@ class EnsureN8nIpIsWhitelisted
         $whitelistedIps = explode(',', env('N8N_WHITELISTED_IP', '127.0.0.1'));
 
         // Cek apakah IP request saat ini ada di dalam daftar whitelist
-        if (!in_array($request->ip(), $whitelistedIps)) {
-            // Bisa menggunakan abort(403) atau kembalikan response JSON khusus
-            return response()->json([
-                'message' => 'Forbidden. Access restricted to whitelisted n8n servers only.',
-                'ip_detected' => $request->ip()
-            ], 403);
-        }
+        // if (!in_array($request->ip(), $whitelistedIps)) {
+        //     // Bisa menggunakan abort(403) atau kembalikan response JSON khusus
+        //     return response()->json([
+        //         'message' => 'Forbidden. Access restricted to whitelisted n8n servers only.',
+        //         'ip_detected' => $request->ip()
+        //     ], 403);
+        // }
 
         return $next($request);
     }
