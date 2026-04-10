@@ -2,15 +2,17 @@
 set -e
 
 # 1. Performance Optimizations (Only if running as app/worker/scheduler)
-# We want to ensure the app is cached for all Laravel processes
-echo "📦 Optimizing Laravel for production..."
-php artisan optimize:clear
-php artisan optimize
+if [ -f "vendor/autoload.php" ]; then
+    echo "📦 Optimizing Laravel for production..."
+    php artisan optimize:clear
+    # Only run optimize if not in local env or if manually requested
+    php artisan optimize
+else
+    echo "⚠️  vendor/autoload.php not found. Skipping optimization. Please run 'make setup'."
+fi
 
-# 2. Fix Volume Permissions (Must run as root)
-echo "🔑 Fixing storage permissions..."
-chown -R www-data:www-data /var/www/html/storage
-chmod -R 775 /var/www/html/storage
+# 2. Volume Permissions handled by Docker Compose user mapping
+echo "🔑 Permissions already managed by host UID mapping..."
 
 # 3. Handle Docker CMD (The "Command-Agnostic" Boot)
 # This allows the same image to run as:

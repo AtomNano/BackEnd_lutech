@@ -23,8 +23,9 @@ RUN composer dump-autoload --optimize --no-dev
 # ─────────────────────────────────────────────────────────────────────────────
 FROM php:8.4-fpm-alpine AS production
 
-# System dependencies
+# System and Build dependencies
 RUN apk add --no-cache \
+    $PHPIZE_DEPS \
     bzip2-dev \
     freetype-dev \
     libjpeg-turbo-dev \
@@ -37,6 +38,9 @@ RUN apk add --no-cache \
     icu-dev \
     shadow
 
+# Composer
+COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
+
 # PHP Extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
@@ -48,10 +52,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
         opcache
 
 # Redis extension
-RUN apk add --no-cache $PHPIZE_DEPS \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apk del $PHPIZE_DEPS
+RUN pecl install redis \
+    && docker-php-ext-enable redis
 
 WORKDIR /var/www/html
 
