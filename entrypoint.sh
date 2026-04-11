@@ -4,9 +4,9 @@ set -e
 # 1. Performance Optimizations (Only if running as app/worker/scheduler)
 if [ -f "vendor/autoload.php" ]; then
     echo "📦 Optimizing Laravel for production..."
-    php artisan optimize:clear
+    php artisan optimize:clear || true
     # Only run optimize if not in local env or if manually requested
-    php artisan optimize
+    php artisan optimize || true
 else
     echo "⚠️  vendor/autoload.php not found. Skipping optimization. Please run 'make setup'."
 fi

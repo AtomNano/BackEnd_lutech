@@ -16,7 +16,7 @@ RUN composer install \
     --prefer-dist
 
 COPY . .
-RUN composer dump-autoload --optimize --no-dev
+RUN composer dump-autoload --optimize --no-dev --no-scripts
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2: Production (PHP-FPM)
