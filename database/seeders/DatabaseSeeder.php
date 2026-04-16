@@ -13,9 +13,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         \App\Models\User::factory()->create([
-            'name' => 'Admin Lutech',
-            'email' => 'admin@lutech.com',
-            'role' => 'super_admin',
+            'name'     => 'Admin Lutech',
+            'email'    => 'admin@lutech.com',
+            'role'     => 'super_admin',
+            'password' => \Illuminate\Support\Facades\Hash::make('LutechAdmin2024!'),
         ]);
 
         \App\Models\Customer::factory(10)->hasTickets(3)->create();
