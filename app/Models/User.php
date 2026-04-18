@@ -18,7 +18,9 @@ class User extends Authenticatable
         'email',
         'password',
         'avatar', // Foto Profil
-        'role', // WAJIB DIMASUKKAN KE FILLABLE, jika tidak, field ini akan diabaikan Laravel saat User::create()
+        'role',
+        'active_workspace_id',
+        'google_id',
     ];
 
     protected $hidden = [
@@ -65,6 +67,11 @@ class User extends Authenticatable
     public function workspaces(): HasMany
     {
         return $this->hasMany(Workspace::class);
+    }
+
+    public function activeWorkspace(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Workspace::class, 'active_workspace_id');
     }
 
     public function defaultWorkspace(): ?Workspace

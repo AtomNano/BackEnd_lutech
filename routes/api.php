@@ -18,9 +18,7 @@ use App\Http\Controllers\Api\V1\UserController;
 Route::post('/login', [AuthController::class, 'login']);
 
 // Gallery public (landing page)
-Route::get('/v1/galleries', function () {
-    return \App\Models\Gallery::latest()->get();
-});
+Route::get('/v1/galleries', [GalleryController::class, 'index']);
 
 // Ticket Tracking Public
 Route::get('/v1/track/{query}', [TicketController::class, 'trackPublic']);
@@ -43,8 +41,10 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 
     // Profile Settings
     Route::post('/profile', [ProfileController::class, 'update']);
+    Route::patch('/user/active-workspace', [UserController::class, 'updateActiveWorkspace']);
 
     // ── Tickets ───────────────────────────────────────────────
+    Route::post('tickets/bulk-delete', [TicketController::class, 'bulkDestroy']);
     Route::get('tickets', [TicketController::class, 'index']);
     Route::post('tickets', [TicketController::class, 'store']);
     Route::get('tickets/{ticket}', [TicketController::class, 'show']);

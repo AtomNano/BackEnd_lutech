@@ -3,32 +3,25 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\TicketResource;
-use App\Models\Customer;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
+use App\Http\Requests\TicketIndexRequest;
+use App\Filters\TicketFilters;
+use App\Http\Resources\TicketResource;
 
 class TicketController extends Controller
 {
-    // GET /v1/tickets — list semua tiket (paginated, filter status)
-    public function index(Request $request)
+    // GET /v1/tickets — list semua tiket (paginated, filter via QueryFilter)
+    public function index(TicketIndexRequest $request)
     {
-        $query = Ticket::with(['customer', 'technician'])->latest();
+        $filters = new TicketFilters($request->validated());
 
-        if ($status = $request->input('status')) {
-            $query->where('status', $status);
-        }
+        $tickets = Ticket::with(['customer', 'technician'])
+            ->filter($filters)
+            ->latest()
+            ->paginate($request->validated('per_page', 20));
 
-        if ($search = $request->input('search')) {
-            $query->whereHas(
-                'customer',
-                fn($q) =>
-                $q->where('nama', 'like', "%{$search}%")
-                    ->orWhere('whatsapp', 'like', "%{$search}%")
-            )->orWhere('subject', 'like', "%{$search}%");
-        }
-
-        return TicketResource::collection($query->paginate(20));
+        return TicketResource::collection($tickets);
     }
 
     // GET /v1/tickets/{id}
@@ -104,6 +97,19 @@ class TicketController extends Controller
     {
         $ticket->delete();
         return response()->json(['message' => 'Tiket dihapus.']);
+    }
+
+    // POST /v1/tickets/bulk-delete
+    public function bulkDestroy(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'required|string|exists:tickets,id',
+        ]);
+
+        Ticket::whereIn('id', $data['ids'])->delete();
+
+        return response()->json(['message' => count($data['ids']) . ' tiket berhasil dihapus.']);
     }
 
     // GET /v1/track/{query} — PUBLIC (Pelacakan)

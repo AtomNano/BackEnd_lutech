@@ -38,4 +38,12 @@ class Ticket extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    /**
+     * Scope a query to apply filters.
+     */
+    public function scopeFilter($query, \App\Filters\QueryFilter $filters)
+    {
+        return $filters->apply($query);
+    }
 }

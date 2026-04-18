@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Gallery extends Model
 {
     protected $fillable = [
-        'title',
-        'image_path',
+        'type',    // image, video, instagram, youtube
+        'url',     // storage path or external URL
+        'caption',
     ];
 }

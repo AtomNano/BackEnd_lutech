@@ -94,4 +94,29 @@ class UserController
 
         return response()->json(['message' => 'User berhasil dihapus.']);
     }
+
+    /**
+     * Update the currently logged-in user's active workspace preference.
+     */
+    public function updateActiveWorkspace(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'id' => 'required|exists:workspaces,id',
+        ]);
+
+        $user = $request->user();
+        
+        // Ensure the workspace belongs to the user
+        $workspace = $user->workspaces()->find($validated['id']);
+        if (!$workspace) {
+            return response()->json(['message' => 'Workspace tidak ditemukan atau bukan milik Anda.'], 422);
+        }
+
+        $user->update(['active_workspace_id' => $validated['id']]);
+
+        return response()->json([
+            'message' => 'Workspace aktif diperbarui.',
+            'active_workspace_id' => $user->active_workspace_id
+        ]);
+    }
 }
