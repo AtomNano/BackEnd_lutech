@@ -9,9 +9,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, SoftDeletes, \App\Traits\BelongsToWorkspace;
 
     protected $fillable = [
+        'workspace_id',
         'nama',
         'whatsapp',
         'email',

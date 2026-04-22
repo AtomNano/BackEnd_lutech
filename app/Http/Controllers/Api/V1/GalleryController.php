@@ -16,9 +16,9 @@ class GalleryController extends Controller
     public function index(): JsonResponse
     {
         $items = Gallery::latest()->get()->map(function ($item) {
-            // Append full URL if it's a local file
+            // Append full URL. If local, use the secure asset route.
             if (in_array($item->type, ['image', 'video'])) {
-                $item->full_url = asset('storage/' . $item->url);
+                $item->full_url = url("/api/v1/assets/{$item->id}");
             } else {
                 $item->full_url = $item->url;
             }
@@ -43,9 +43,10 @@ class GalleryController extends Controller
         $type = $request->type;
         $url = $request->url;
 
-        // Handle file uploads
+        // Handle file uploads (Secure Local Storage)
         if (in_array($type, ['image', 'video'])) {
-            $path = $request->file('file')->store('galleries', 'public');
+            $wsId = app(\App\Services\WorkspaceContext::class)->getWorkspaceId();
+            $path = $request->file('file')->store("workspaces/{$wsId}/galleries", 'local');
             $url = $path;
         }
 
@@ -65,8 +66,8 @@ class GalleryController extends Controller
     {
         // Cleanup file if it was an upload
         if (in_array($gallery->type, ['image', 'video'])) {
-            if (Storage::disk('public')->exists($gallery->url)) {
-                Storage::disk('public')->delete($gallery->url);
+            if (Storage::disk('local')->exists($gallery->url)) {
+                Storage::disk('local')->delete($gallery->url);
             }
         }
         

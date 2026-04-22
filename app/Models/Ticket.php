@@ -9,9 +9,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Ticket extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, SoftDeletes, \App\Traits\BelongsToWorkspace;
 
     protected $fillable = [
+        'workspace_id',
         'customer_id',
         'user_id',
         'subject',
@@ -38,6 +39,12 @@ class Ticket extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function attachments()
+    {
+        return $this->hasMany(TicketAttachment::class);
+    }
+
 
     /**
      * Scope a query to apply filters.

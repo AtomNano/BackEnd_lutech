@@ -44,12 +44,13 @@ class TicketController extends Controller
             'priority' => 'nullable|in:low,medium,high,urgent',
         ]);
 
-        // Buat atau cari customer berdasarkan whatsapp
+        // Buat atau cari customer berdasarkan whatsapp di workspace ini (Scoped by Global Scope)
         $customer = Customer::firstOrCreate(
             ['whatsapp' => $data['whatsapp']],
-            ['nama' => $data['nama'], 'whatsapp' => $data['whatsapp']]
+            ['nama' => $data['nama']]
         );
         $customer->update(['nama' => $data['nama']]);
+
 
         $ticket = Ticket::create([
             'customer_id' => $customer->id,
@@ -118,20 +119,23 @@ class TicketController extends Controller
         // Bersihkan tanda '#' jika ada
         $cleanQuery = ltrim($query, '#');
 
-        // Cari tiket berdasarkan potongan ID (sejak user melihat ID pendek misal 019cae00)
-        $ticket = Ticket::with(['customer', 'technician'])
+        // Cari tiket (Bypass Global Scope untuk akses publik)
+        $ticket = Ticket::withoutGlobalScopes()
+            ->with(['customer', 'technician'])
             ->where('id', 'LIKE', $cleanQuery . '%')
             ->first();
 
         // Jika tidak ketemu berdasarkan ID, coba cari berdasar WA customer
         if (!$ticket) {
-            $ticket = Ticket::with(['customer', 'technician'])
+            $ticket = Ticket::withoutGlobalScopes()
+                ->with(['customer', 'technician'])
                 ->whereHas('customer', function ($q) use ($cleanQuery) {
-                    $q->where('whatsapp', $cleanQuery);
+                    $q->withoutGlobalScopes()->where('whatsapp', $cleanQuery);
                 })
                 ->orderBy('created_at', 'desc')
                 ->first();
         }
+
 
         if (!$ticket) {
             return response()->json(['message' => 'Tiket atau Nomor WhatsApp tidak ditemukan.'], 404);

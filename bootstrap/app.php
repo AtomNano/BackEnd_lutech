@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->api(append: [
+            \App\Http\Middleware\SetWorkspaceContext::class,
+        ]);
         $middleware->alias([
             'n8n.whitelist' => \App\Http\Middleware\EnsureN8nIpIsWhitelisted::class,
         ]);

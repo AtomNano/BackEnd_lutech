@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FinanceAccount extends Model
 {
+    use \App\Traits\BelongsToWorkspace;
+
     protected $fillable = [
         'workspace_id',
         'name',
@@ -20,10 +22,8 @@ class FinanceAccount extends Model
         'balance' => 'decimal:2',
     ];
 
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
+    // Redundant workspace relation removed (provided by trait)
+
 
     public function finances(): HasMany
     {

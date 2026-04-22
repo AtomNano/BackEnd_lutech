@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Inventory extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, \App\Traits\BelongsToWorkspace;
 
     protected $fillable = [
+        'workspace_id',
         'nama_barang',
         'stok',
     ];

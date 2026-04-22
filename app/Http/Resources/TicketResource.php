@@ -28,6 +28,14 @@ class TicketResource extends JsonResource
                 'id' => $this->technician?->id,
                 'name' => $this->technician?->name,
             ]),
+            'attachments' => $this->whenLoaded('attachments', fn() => 
+                $this->attachments->map(fn($a) => [
+                    'id' => $a->id,
+                    'file_name' => $a->file_name,
+                    'url' => url("/api/v1/attachments/{$a->id}"),
+                ])
+            ),
+
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

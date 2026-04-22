@@ -7,14 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FinanceCategory extends Model
 {
+    use \App\Traits\BelongsToWorkspace;
+
     protected $fillable = [
         'workspace_id',
         'name',
         'type',
     ];
 
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
+    // Redundant workspace relation removed (provided by trait)
+
 }

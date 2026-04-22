@@ -33,8 +33,8 @@ class AuthController extends Controller
         $user = Auth::user();
         $user->load('activeWorkspace');
         
-        // Handle "Remember Me" via Backend Token Expiration
-        $expiration = ($request->boolean('remember')) ? now()->addDays(30) : now()->addHours(12);
+        // Handle Session Persistence via Sanctum TTL
+        $expiration = ($request->boolean('remember')) ? now()->addDays(30) : now()->addHours(2);
         $token = $user->createToken('auth-token', ['*'], $expiration)->plainTextToken;
 
         return response()->json([
@@ -115,8 +115,8 @@ class AuthController extends Controller
 
             $user->load('activeWorkspace');
 
-            // Handle "Remember Me" via Backend Token Expiration
-            $expiration = ($request->boolean('remember')) ? now()->addDays(30) : now()->addHours(12);
+            // Handle Session Persistence via Sanctum TTL
+            $expiration = ($request->boolean('remember')) ? now()->addDays(30) : now()->addHours(2);
             $token = $user->createToken('auth-token', ['*'], $expiration)->plainTextToken;
 
             return response()->json([

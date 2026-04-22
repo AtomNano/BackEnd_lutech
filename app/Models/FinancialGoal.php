@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FinancialGoal extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\BelongsToWorkspace;
+
 
     protected $fillable = [
         'workspace_id',
@@ -28,10 +29,8 @@ class FinancialGoal extends Model
         'deadline' => 'date',
     ];
 
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
+    // Redundant workspace relation removed (provided by trait)
+
 
     public function user(): BelongsTo
     {

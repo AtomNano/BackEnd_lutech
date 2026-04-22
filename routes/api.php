@@ -16,12 +16,19 @@ use App\Http\Controllers\Api\V1\UserController;
 //  PUBLIC ROUTES  (tanpa auth)
 // ═══════════════════════════════════════════════════════════════
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/v1/auth/google', [AuthController::class, 'loginWithGoogle']);
 
 // Gallery public (landing page)
 Route::get('/v1/galleries', [GalleryController::class, 'index']);
 
 // Ticket Tracking Public
 Route::get('/v1/track/{query}', [TicketController::class, 'trackPublic']);
+
+// Secure Asset Serving (Private disk)
+Route::middleware('auth:sanctum')->get('/v1/assets/{gallery}', [\App\Http\Controllers\Api\V1\AssetController::class, 'show']);
+Route::middleware('auth:sanctum')->get('/v1/attachments/{attachment}', [\App\Http\Controllers\Api\V1\AssetController::class, 'showTicketAttachment']);
+
+
 
 // ═══════════════════════════════════════════════════════════════
 //  PROTECTED ROUTES  (Sanctum Bearer Token)
@@ -62,7 +69,12 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::post('customers/{customer}/add-points', [CustomerController::class, 'addPoints']);
 
     // ── Inventory ─────────────────────────────────────────────
+    Route::get('inventory', [InventoryController::class, 'index']);
+    Route::post('inventory', [InventoryController::class, 'store']);
+    Route::put('inventory/{inventory}', [InventoryController::class, 'update']);
+    Route::delete('inventory/{inventory}', [InventoryController::class, 'destroy']);
     Route::patch('inventory/{inventory}/stock', [InventoryController::class, 'adjustStock']);
+
 
     // ── Gallery (auth required untuk upload/delete) ───────────
     Route::post('galleries', [GalleryController::class, 'store']);
@@ -77,33 +89,31 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::post('workspaces/{workspace}/set-pin', [WorkspaceController::class, 'setPin']);
     Route::delete('workspaces/{workspace}', [WorkspaceController::class, 'destroy']);
 
-    // ── Finance & Categories (nested di bawah workspace) ───────────────────
-    Route::prefix('workspaces/{workspace}')->group(function () {
-        // Accounts (Dompet/Rekening)
-        Route::get('finance-accounts', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'index']);
-        Route::post('finance-accounts', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'store']);
-        Route::patch('finance-accounts/{financeAccount}', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'update']);
-        Route::delete('finance-accounts/{financeAccount}', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'destroy']);
+    // ── Finance & Categories (Now top-level, scoped by Global Scope & X-Workspace-Id header) ───────────────────
+    // Accounts (Dompet/Rekening)
+    Route::get('finance-accounts', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'index']);
+    Route::post('finance-accounts', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'store']);
+    Route::patch('finance-accounts/{financeAccount}', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'update']);
+    Route::delete('finance-accounts/{financeAccount}', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'destroy']);
 
-        // Categories
-        Route::get('finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'index']);
-        Route::post('finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'store']);
-        Route::delete('finance-categories/{category}', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'destroy']);
+    // Categories
+    Route::get('finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'index']);
+    Route::post('finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'store']);
+    Route::delete('finance-categories/{category}', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'destroy']);
 
-        // Finances
-        // ⚠️ summary HARUS sebelum {finance} agar tidak konflik routing
-        Route::get('finances/summary', [FinanceController::class, 'summary']);
-        Route::get('finances', [FinanceController::class, 'index']);
-        Route::post('finances', [FinanceController::class, 'store']);
-        Route::put('finances/{finance}', [FinanceController::class, 'update']);
-        Route::delete('finances/{finance}', [FinanceController::class, 'destroy']);
+    // Finances
+    Route::get('finances/summary', [FinanceController::class, 'summary']);
+    Route::get('finances', [FinanceController::class, 'index']);
+    Route::post('finances', [FinanceController::class, 'store']);
+    Route::put('finances/{finance}', [FinanceController::class, 'update']);
+    Route::delete('finances/{finance}', [FinanceController::class, 'destroy']);
 
-        // Financial Goals
-        Route::get('financial-goals', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'index']);
-        Route::post('financial-goals', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'store']);
-        Route::put('financial-goals/{goal}', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'update']);
-        Route::delete('financial-goals/{goal}', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'destroy']);
-    });
+    // Financial Goals
+    Route::get('financial-goals', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'index']);
+    Route::post('financial-goals', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'store']);
+    Route::put('financial-goals/{goal}', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'update']);
+    Route::delete('financial-goals/{goal}', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'destroy']);
+
 
     // ── User Management (Super Admin Only) ───────────────────────
     Route::get('users', [UserController::class, 'index']);
@@ -114,16 +124,18 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 
 // ═══════════════════════════════════════════════════════════════
 //  N8N AUTOMATION ROUTES (Protected by IP Whitelist + Sanctum Token)
+//  Flattened: Now uses X-Workspace-Id header like the main API.
 // ═══════════════════════════════════════════════════════════════
 Route::middleware(['auth:sanctum', 'n8n.whitelist'])->prefix('v1/n8n')->group(function () {
 
-    // N8N Endpoint: Get active finance categories for String Matching AI (Data Enrichment)
-    Route::get('workspaces/{workspace}/finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'index']);
+    // N8N Endpoint: Get active finance categories for AI Enrichment
+    Route::get('finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'index']);
 
-    // N8N Endpoint: Post Finance (Draft/Pending Mode recommended)
-    Route::post('workspaces/{workspace}/finances', [FinanceController::class, 'store']);
+    // N8N Endpoint: Post Finance (Draft/Pending Mode)
+    Route::post('finances', [FinanceController::class, 'store']);
 
     // N8N Endpoint: Post Ticket Service
     Route::post('tickets', [TicketController::class, 'store']);
 
 });
+

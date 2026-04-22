@@ -5,28 +5,18 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\FinancialGoalResource;
 use App\Models\FinancialGoal;
-use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class FinancialGoalController extends Controller
 {
-    private function authorizeWorkspace(Workspace $workspace): void
-    {
-        if ($workspace->user_id !== Auth::id()) {
-            abort(403, 'Forbidden');
-        }
-    }
-
     /**
-     * GET /api/v1/workspaces/{workspace}/financial-goals
+     * GET /api/v1/financial-goals
      */
-    public function index(Workspace $workspace)
+    public function index()
     {
-        $this->authorizeWorkspace($workspace);
-
-        $goals = FinancialGoal::where('workspace_id', $workspace->id)
+        $goals = FinancialGoal::query()
             ->orderBy('deadline')
             ->get();
 
@@ -34,12 +24,10 @@ class FinancialGoalController extends Controller
     }
 
     /**
-     * POST /api/v1/workspaces/{workspace}/financial-goals
+     * POST /api/v1/financial-goals
      */
-    public function store(Request $request, Workspace $workspace): FinancialGoalResource
+    public function store(Request $request): FinancialGoalResource
     {
-        $this->authorizeWorkspace($workspace);
-
         $validated = $request->validate([
             'title' => 'required|string|max:150',
             'icon' => 'nullable|string|max:50',
@@ -51,7 +39,6 @@ class FinancialGoalController extends Controller
         ]);
 
         $goal = FinancialGoal::create(array_merge($validated, [
-            'workspace_id' => $workspace->id,
             'user_id' => Auth::id(),
         ]));
 
@@ -59,16 +46,10 @@ class FinancialGoalController extends Controller
     }
 
     /**
-     * PUT /api/v1/workspaces/{workspace}/financial-goals/{goal}
+     * PUT /api/v1/financial-goals/{goal}
      */
-    public function update(Request $request, Workspace $workspace, FinancialGoal $goal): FinancialGoalResource
+    public function update(Request $request, FinancialGoal $goal): FinancialGoalResource
     {
-        $this->authorizeWorkspace($workspace);
-
-        if ($goal->workspace_id !== $workspace->id) {
-            abort(403, 'Forbidden');
-        }
-
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:150',
             'icon' => 'nullable|string|max:50',
@@ -86,18 +67,11 @@ class FinancialGoalController extends Controller
     }
 
     /**
-     * DELETE /api/v1/workspaces/{workspace}/financial-goals/{goal}
+     * DELETE /api/v1/financial-goals/{goal}
      */
-    public function destroy(Workspace $workspace, FinancialGoal $goal): JsonResponse
+    public function destroy(FinancialGoal $goal): JsonResponse
     {
-        $this->authorizeWorkspace($workspace);
-
-        if ($goal->workspace_id !== $workspace->id) {
-            abort(403, 'Forbidden');
-        }
-
         $goal->delete();
-
         return response()->json(['message' => 'Goal deleted.']);
     }
 }
