@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ticket;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use App\Http\Requests\TicketIndexRequest;
 use App\Filters\TicketFilters;

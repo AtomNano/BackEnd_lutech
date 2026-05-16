@@ -9,8 +9,12 @@ use App\Http\Controllers\Api\V1\TicketController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\GalleryController;
+use App\Http\Controllers\Api\V1\AssetController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\FinanceAccountController;
+use App\Http\Controllers\Api\V1\FinanceCategoryController;
+use App\Http\Controllers\Api\V1\FinancialGoalController;
 
 // ═══════════════════════════════════════════════════════════════
 //  PUBLIC ROUTES  (tanpa auth)
@@ -25,8 +29,8 @@ Route::get('/v1/galleries', [GalleryController::class, 'index']);
 Route::get('/v1/track/{query}', [TicketController::class, 'trackPublic']);
 
 // Secure Asset Serving (Private disk)
-Route::middleware('auth:sanctum')->get('/v1/assets/{gallery}', [\App\Http\Controllers\Api\V1\AssetController::class, 'show']);
-Route::middleware('auth:sanctum')->get('/v1/attachments/{attachment}', [\App\Http\Controllers\Api\V1\AssetController::class, 'showTicketAttachment']);
+Route::middleware('auth:sanctum')->get('/v1/assets/{gallery}', [AssetController::class, 'show']);
+Route::middleware('auth:sanctum')->get('/v1/attachments/{attachment}', [AssetController::class, 'showTicketAttachment']);
 
 
 
@@ -51,7 +55,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::patch('/user/active-workspace', [UserController::class, 'updateActiveWorkspace']);
 
     // ── Tickets ───────────────────────────────────────────────
-    Route::post('tickets/bulk-delete', [TicketController::class, 'bulkDestroy']);
+    Route::match(['post', 'delete'], 'tickets/bulk-delete', [TicketController::class, 'bulkDestroy']);
     Route::get('tickets', [TicketController::class, 'index']);
     Route::post('tickets', [TicketController::class, 'store']);
     Route::get('tickets/{ticket}', [TicketController::class, 'show']);
@@ -87,19 +91,21 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::patch('workspaces/{workspace}/default', [WorkspaceController::class, 'setDefault']);
     Route::post('workspaces/{workspace}/verify-pin', [WorkspaceController::class, 'verifyPin']);
     Route::post('workspaces/{workspace}/set-pin', [WorkspaceController::class, 'setPin']);
+    // Route::delete('workspaces/{workspace}', [WorkspaceController::class, 'destroy']);
+    // Actually, destroying workspaces needs careful implementation
     Route::delete('workspaces/{workspace}', [WorkspaceController::class, 'destroy']);
 
     // ── Finance & Categories (Now top-level, scoped by Global Scope & X-Workspace-Id header) ───────────────────
     // Accounts (Dompet/Rekening)
-    Route::get('finance-accounts', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'index']);
-    Route::post('finance-accounts', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'store']);
-    Route::patch('finance-accounts/{financeAccount}', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'update']);
-    Route::delete('finance-accounts/{financeAccount}', [\App\Http\Controllers\Api\V1\FinanceAccountController::class, 'destroy']);
+    Route::get('finance-accounts', [FinanceAccountController::class, 'index']);
+    Route::post('finance-accounts', [FinanceAccountController::class, 'store']);
+    Route::patch('finance-accounts/{financeAccount}', [FinanceAccountController::class, 'update']);
+    Route::delete('finance-accounts/{financeAccount}', [FinanceAccountController::class, 'destroy']);
 
     // Categories
-    Route::get('finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'index']);
-    Route::post('finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'store']);
-    Route::delete('finance-categories/{category}', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'destroy']);
+    Route::get('finance-categories', [FinanceCategoryController::class, 'index']);
+    Route::post('finance-categories', [FinanceCategoryController::class, 'store']);
+    Route::delete('finance-categories/{category}', [FinanceCategoryController::class, 'destroy']);
 
     // Finances
     Route::get('finances/summary', [FinanceController::class, 'summary']);
@@ -109,10 +115,10 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::delete('finances/{finance}', [FinanceController::class, 'destroy']);
 
     // Financial Goals
-    Route::get('financial-goals', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'index']);
-    Route::post('financial-goals', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'store']);
-    Route::put('financial-goals/{goal}', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'update']);
-    Route::delete('financial-goals/{goal}', [\App\Http\Controllers\Api\V1\FinancialGoalController::class, 'destroy']);
+    Route::get('financial-goals', [FinancialGoalController::class, 'index']);
+    Route::post('financial-goals', [FinancialGoalController::class, 'store']);
+    Route::put('financial-goals/{goal}', [FinancialGoalController::class, 'update']);
+    Route::delete('financial-goals/{goal}', [FinancialGoalController::class, 'destroy']);
 
 
     // ── User Management (Super Admin Only) ───────────────────────
@@ -129,7 +135,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 Route::middleware(['auth:sanctum', 'n8n.whitelist'])->prefix('v1/n8n')->group(function () {
 
     // N8N Endpoint: Get active finance categories for AI Enrichment
-    Route::get('finance-categories', [\App\Http\Controllers\Api\V1\FinanceCategoryController::class, 'index']);
+    Route::get('finance-categories', [FinanceCategoryController::class, 'index']);
 
     // N8N Endpoint: Post Finance (Draft/Pending Mode)
     Route::post('finances', [FinanceController::class, 'store']);
@@ -138,4 +144,3 @@ Route::middleware(['auth:sanctum', 'n8n.whitelist'])->prefix('v1/n8n')->group(fu
     Route::post('tickets', [TicketController::class, 'store']);
 
 });
-
