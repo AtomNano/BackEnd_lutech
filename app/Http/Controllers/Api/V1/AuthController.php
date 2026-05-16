@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
-use App\Models\Workspace;
 use Google\Client as GoogleClient;
 
 class AuthController extends Controller
@@ -26,7 +25,7 @@ class AuthController extends Controller
         ]);
 
         if (!Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password']])) {
-            return response()->json(['message' => 'Email atau password salah.'], 401);
+            return response()->json(['message' => __('auth.failed')], 401);
         }
 
         /** @var User $user */
@@ -38,7 +37,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth-token', ['*'], $expiration)->plainTextToken;
 
         return response()->json([
-            'message' => 'Login sukses',
+            'message' => __('auth.login_success'),
             'token' => $token,
             'user' => [
                 'id' => $user->id,
@@ -66,18 +65,18 @@ class AuthController extends Controller
         $payload = $client->verifyIdToken($request->id_token);
 
         if (!$payload) {
-            return response()->json(['message' => 'Token Google tidak valid.'], 422);
+            return response()->json(['message' => __('auth.google_invalid')], 422);
         }
 
         // Security Check 1: Verified Email
         if (!$payload['email_verified']) {
-            return response()->json(['message' => 'Akun Google Anda belum terverifikasi.'], 422);
+            return response()->json(['message' => __('auth.google_unverified')], 422);
         }
 
         // Security Check 2: Domain Restriction (HD = Hosted Domain)
         $authorizedDomain = env('GOOGLE_AUTHORIZED_DOMAIN', 'lutech.com');
         if (isset($payload['hd']) && $payload['hd'] !== $authorizedDomain) {
-             return response()->json(['message' => "Hanya domain @$authorizedDomain yang diperbolehkan."], 403);
+             return response()->json(['message' => __('auth.google_domain_restricted', ['domain' => "@$authorizedDomain"])], 403);
         }
 
         $user = User::where('email', $payload['email'])->first();
@@ -86,7 +85,7 @@ class AuthController extends Controller
             if (!$user) {
                 // JIT Provisioning with Atomicity
                 $user = DB::transaction(function () use ($payload) {
-                    $newUser = User::create([
+                    return User::create([
                         'name' => $payload['name'],
                         'email' => $payload['email'],
                         'google_id' => $payload['sub'],
@@ -94,16 +93,6 @@ class AuthController extends Controller
                         'password' => Hash::make(str()->random(32)),
                         'role' => 'technician', // Default Access Level
                     ]);
-
-                    $workspace = Workspace::create([
-                        'user_id' => $newUser->id,
-                        'name' => 'Personal Workspace',
-                        'type' => 'personal',
-                        'is_default' => true,
-                    ]);
-
-                    $newUser->update(['active_workspace_id' => $workspace->id]);
-                    return $newUser;
                 });
             } else {
                 // Link account if Google ID matches or if we trust the verified email
@@ -133,7 +122,7 @@ class AuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Gagal melakukan sinkronisasi akun.'], 500);
+            return response()->json(['message' => __('auth.google_sync_failed')], 500);
         }
     }
 
@@ -143,6 +132,6 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Logout sukses']);
+        return response()->json(['message' => __('auth.logout_success')]);
     }
 }

@@ -19,12 +19,4 @@ class StoreWorkspaceRequest extends FormRequest
             'type' => 'required|in:personal,business',
         ];
     }
-
-    public function messages(): array
-    {
-        return [
-            'name.required' => 'Nama workspace wajib diisi.',
-            'type.in' => 'Tipe workspace harus personal atau business.',
-        ];
-    }
 }

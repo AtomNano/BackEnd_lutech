@@ -17,11 +17,4 @@ class StoreCustomerRequest extends FormRequest
             'nama' => 'required|string|max:255',
         ];
     }
-
-    public function messages(): array
-    {
-        return [
-            'nama.required' => 'Nama pelanggan wajib diisi.',
-        ];
-    }
 }

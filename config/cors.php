@@ -1,5 +1,16 @@
 <?php
 
+$explicitOrigins = array_values(array_filter(array_map(
+    static fn (string $origin): string => trim($origin),
+    explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))
+)));
+
+$defaultOrigins = [
+    env('FRONTEND_URL', 'https://luthfiserver.site'),
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+];
+
 return [
 
     /*
@@ -19,12 +30,16 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        env('FRONTEND_URL', 'http://localhost:5173'),
-        'http://127.0.0.1:5173',
-    ],
+    'allowed_origins' => array_values(array_unique(array_filter([
+        ...$defaultOrigins,
+        ...$explicitOrigins,
+    ]))),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https?://localhost(?::\d+)?$#',
+        '#^https?://127\.0\.0\.1(?::\d+)?$#',
+        '#^https?://(?:.+\.)?luthfiserver\.site$#',
+    ],
 
     'allowed_headers' => ['*'],
 

@@ -2,6 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Finance;
+use App\Models\User;
+use App\Models\Workspace;
+use App\Observers\FinanceObserver;
+use App\Observers\UserObserver;
+use App\Observers\WorkspaceObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \App\Models\Finance::observe(\App\Observers\FinanceObserver::class);
+        Finance::observe(FinanceObserver::class);
+        User::observe(UserObserver::class);
+        Workspace::observe(WorkspaceObserver::class);
     }
 }

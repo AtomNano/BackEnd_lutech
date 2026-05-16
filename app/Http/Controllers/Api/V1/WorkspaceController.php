@@ -26,14 +26,13 @@ class WorkspaceController extends Controller
 
     public function store(StoreWorkspaceRequest $request): WorkspaceResource
     {
-        $isFirst = !Workspace::where('user_id', Auth::id())->exists();
         $workspace = Workspace::create([
             'user_id' => Auth::id(),
             'name' => $request->name,
             'type' => $request->type,
-            'is_default' => $isFirst,
         ]);
-        return new WorkspaceResource($workspace);
+
+        return new WorkspaceResource($workspace->fresh());
     }
 
     /**
